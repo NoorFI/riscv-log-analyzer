@@ -13,11 +13,7 @@ all:
 	done
 
 setup:
-	@echo "Checking required tools:"
-	@bash --version
-	@grep --version
-	@awk --version
-	@bc --version
+	./scripts/setup_env.sh
 
 clean:
 	rm -f output/*

@@ -245,7 +245,7 @@ compare_logs(){
     echo "=== REGRESSIONS (Previously PASS --> Now FAIL) ==="
 
     for test in $NEW_FAILED_TESTS; do
-        if echo $"$OLD_PASSED_TESTS" | grep -q "$test"; then
+        if echo "$OLD_PASSED_TESTS" | grep -q "$test"; then
             echo "REGRESSION: $test"
         fi
     done

@@ -1,0 +1,52 @@
+[2026-05-14 11:00:01] TEST START: rv32i-add
+[2026-05-14 11:00:02] TEST PASS: rv32i-add (0.82s)
+
+[2026-05-14 11:00:03] TEST START: rv32i-sub
+[2026-05-14 11:00:04] TEST FAIL: rv32i-sub (1.26s)
+[2026-05-14 11:00:04] ERROR: Incorrect subtraction result
+
+[2026-05-14 11:00:05] TEST START: rv32i-and
+[2026-05-14 11:00:06] TEST PASS: rv32i-and (0.63s)
+
+[2026-05-14 11:00:07] TEST START: rv32i-or
+[2026-05-14 11:00:08] TEST FAIL: rv32i-or (1.31s)
+[2026-05-14 11:00:08] ERROR: ALU output mismatch
+
+[2026-05-14 11:00:09] TEST START: rv32i-xor
+[2026-05-14 11:00:10] TEST PASS: rv32i-xor (0.69s)
+
+[2026-05-41 11:00:11] TEST START: rv32i-sll
+[2026-05-14 11:00:12] TEST FAIL: rv32i-sll (1.41s)
+[2026-05-14 11:00:12] ERROR: Shift logic failure
+
+[2026-05-14 11:00:13] TEST START: rv32i-srl
+[2026-05-14 11:00:14] TEST PASS: rv32i-srl (0.88s)
+
+[2026-05-14 11:00:15] TEST START: rv32i-sra
+[2026-05-14 11:00:16] TEST PASS: rv32i-sra (0.92s)
+
+[2026-05-14 11:00:17] TEST START: rv32i-beq
+[2026-05-14 11:00:18] TEST FAIL: rv32i-beq (1.58s)
+[2026-05-14 11:00:18] ERROR: Branch target incorrect
+
+[2026-05-14 11:00:19] TEST START: rv32i-bne
+[2026-05-14 11:00:20] TEST PASS: rv32i-bne (0.81s)
+
+[2026-05-14 11:00:21] TEST START: rv32i-blt
+[2026-05-14 11:00:22] TEST PASS: rv32i-blt (0.85s)
+
+[2026-05-14 11:00:23] TEST START: rv32i-bge
+[2026-05-14 11:00:24] TEST FAIL: rv32i-bge (1.44s)
+[2026-05-14 11:00:24] ERROR: Comparison logic mismatch
+
+[2026-05-14 11:00:25] TEST START: rv32i-lw
+[2026-05-14 11:00:26] TEST PASS: rv32i-lw (1.12s)
+
+[2026-05-14 11:00:27] TEST START: rv32i-sw
+[2026-05-14 11:00:28] TEST PASS: rv32i-sw (1.05s)
+
+[2026-05-14 11:00:29] TEST START: rv32i-jal
+[2026-05-14 11:00:30] TEST FAIL: rv32i-jal (1.62s)
+[2026-05-14 11:00:30] ERROR: Jump address corrupted
+
+[2026-05-14 11:05:00] SUMMARY: 15 tests, 9 passed, 6 failed, 0 skipped
