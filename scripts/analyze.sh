@@ -94,6 +94,8 @@ file_validation(){
         exit 1
     fi
 
+    logfilepath="$(realpath "$logfilepath")" #Ensures absolute path, since we're working from root directory and file is inside another directory.
+
     if [ ! -r "$logfilepath" ]; then #Was quite confused initially on how to check readability then I discovered -r.
         echo "File does not exist or isn't readable"
         exit 1
