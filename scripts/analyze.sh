@@ -15,9 +15,9 @@ help=0
 compare=0 #In all three of these 0 is considered as undefined/unspecified.
 logfilepath=""
 compare_file=""
-Red=033[31m
-Green=\033[32m #ANSI Escape codes for pass and fail outputs.
-Reset=\033[0m #Always appended to stop colouring.
+RED="\033[31m"
+GREEN="\033[32m" #ANSI Escape codes for pass and fail outputs.
+RESET="\033[0m" #Always appended to stop colouring.
 
 help_menu(){
     verbose_message "Displaying help menu"
@@ -30,6 +30,7 @@ help_menu(){
     echo "--output <path>        Write output to file"
     echo "--verbose              Enable verbose mode"
     echo "--help                 Show help menu"
+    echo "--compare <old_log>    Compare logs and show regressions"
 }
 
 verbose_message(){
@@ -110,6 +111,11 @@ file_validation(){
         echo "File does not exist or isn't readable"
         exit 1
     fi
+
+    if [ "$compare" -eq 1 ] && [ ! -r "$compare_file" ]; then #This ensures that if a compare file is provided it is readable
+        echo "Compare file does not exist or isn't readable"
+        exit 1
+    fi
 }
 
 log_analysis(){
@@ -185,26 +191,26 @@ statistics(){
 report(){
     verbose_message "Generating report"
 
-    REPORT_TEXT=""" === RISC-V Simulation Log Analysis ===
+    REPORT_TEXT=""=== RISC-V Simulation Log Analysis ===
     Log file: $logfilepath
     Analysis date: $(date)
     
-     --- Results Summary ---
+    --- Results Summary ---
     Total tests: $TOTAL
     ${GREEN}Passed:${RESET}       ${GREEN}$PASS ($PASS_RATE%)${RESET}
     ${RED}Failed:${RESET}       ${RED}$FAIL ($FAIL_RATE%)${RESET}
     Skipped:      $SKIP ($SKIP_RATE%)
     
-     --- Failed Tests ---
+    --- Failed Tests ---
     ${RED}$FAIL_LIST${RESET}
 
-     --- Timing Statistics ---
+    --- Timing Statistics ---
     Min time:     ${MIN_TIME}s
     Max time:     ${MAX_TIME}s
-    Avg time:     ${AVG_TIME}s"""
+    Avg time:     ${AVG_TIME}s""
 
-    REPORT_CSV="Log file,Analysis date,Total tests,${GREEN}Passed${RESET},${RED}Failed${RESET},Skipped,${RED}List of failed tests${RESET},Min time,Max time,Avg time
-    $logfilepath,$(date),$TOTAL,${GREEN}$PASS ($PASS_RATE)${RESET},${RED}$FAIL ($FAIL_RATE)${RESET},$SKIP ($SKIP_RATE),${RED}$FAIL_LIST${RESET},$MIN_TIME,$MAX_TIME,$AVG_TIME"
+    REPORT_CSV="Log file,Analysis date,Total tests,Passed,Failed,Skipped,List of failed tests,Min time,Max time,Avg time
+    $logfilepath,$(date),$TOTAL,$PASS ($PASS_RATE),$FAIL ($FAIL_RATE),$SKIP ($SKIP_RATE),$FAIL_LIST,$MIN_TIME,$MAX_TIME,$AVG_TIME"
     
     if [ "$format" = "text" ]; then
         REPORT=$REPORT_TEXT
