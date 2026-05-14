@@ -1,6 +1,6 @@
 #!/bin/bash 
 # My fifth MEDS script 
-# Author: Noor Fatima s
+# Author: Noor Fatima
 # Date: 2026-05-12
 
 set -euo pipefail
@@ -15,6 +15,9 @@ help=0
 compare=0 #In all three of these 0 is considered as undefined/unspecified.
 logfilepath=""
 compare_file=""
+Red=033[31m
+Green=\033[32m #ANSI Escape codes for pass and fail outputs.
+Reset=\033[0m #Always appended to stop colouring.
 
 help_menu(){
     verbose_message "Displaying help menu"
@@ -188,20 +191,20 @@ report(){
     
      --- Results Summary ---
     Total tests: $TOTAL
-    Passed:       $PASS ($PASS_RATE%)
-    Failed:       $FAIL ($FAIL_RATE%)
+    ${GREEN}Passed:${RESET}       ${GREEN}$PASS ($PASS_RATE%)${RESET}
+    ${RED}Failed:${RESET}       ${RED}$FAIL ($FAIL_RATE%)${RESET}
     Skipped:      $SKIP ($SKIP_RATE%)
     
      --- Failed Tests ---
-    $FAIL_LIST
+    ${RED}$FAIL_LIST${RESET}
 
      --- Timing Statistics ---
     Min time:     ${MIN_TIME}s
     Max time:     ${MAX_TIME}s
     Avg time:     ${AVG_TIME}s"""
 
-    REPORT_CSV="Log file,Analysis date,Total tests,Passed,Failed,Skipped,List of failed tests,Min time,Max time,Avg time
-    $logfilepath,$(date),$TOTAL,$PASS ($PASS_RATE),$FAIL ($FAIL_RATE),$SKIP ($SKIP_RATE),$FAIL_LIST,$MIN_TIME,$MAX_TIME,$AVG_TIME"
+    REPORT_CSV="Log file,Analysis date,Total tests,${GREEN}Passed${RESET},${RED}Failed${RESET},Skipped,${RED}List of failed tests${RESET},Min time,Max time,Avg time
+    $logfilepath,$(date),$TOTAL,${GREEN}$PASS ($PASS_RATE)${RESET},${RED}$FAIL ($FAIL_RATE)${RESET},$SKIP ($SKIP_RATE),${RED}$FAIL_LIST${RESET},$MIN_TIME,$MAX_TIME,$AVG_TIME"
     
     if [ "$format" = "text" ]; then
         REPORT=$REPORT_TEXT
@@ -226,7 +229,7 @@ compare_logs(){
     echo "=== REGRESSIONS (Previously PASS --> Now FAIL) ==="
 
     for test in $NEW_FAILED_TESTS; do
-        if echo "$OLD_PASSED_TESTS" | grep -q "$test"; then
+        if echo $"$OLD_PASSED_TESTS" | grep -q "$test"; then
             echo "REGRESSION: $test"
         fi
     done
