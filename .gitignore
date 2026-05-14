@@ -1,0 +1,6 @@
+output/
+*.csv
+*.tmp
+.DS_Store
+Thumbs.db
+.vscode/
