@@ -3,7 +3,14 @@ CFLAGS ?= -Wall -Wextra -g
 
 TARGET = riscv-log-analyzer
 
-.PHONY: all clean test help
+.PHONY: all clean setup test help
+
+setup:
+	@echo "Checking required tools:"
+	@bash --version
+	@grep --version
+	@awk --version
+	@bc --version
 
 clean:
 	rm -f output/*
