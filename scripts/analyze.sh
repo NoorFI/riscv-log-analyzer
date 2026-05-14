@@ -1,18 +1,22 @@
 #!/bin/bash 
 # My fifth MEDS script 
-# Author: Noor Fatima 
+# Author: Noor Fatima s
 # Date: 2026-05-12
 
 set -euo pipefail
+#Here e is exit if any command gives a non-zero status,
+#u is usage of undefined variables as errors,
+#pipefail basically means inside a pipeline if any command fails the whole thing fails.
 
 format=text
 output=stdout
 verbose=0
-help=0
+help=0 #In both of these 0 is considered as undefined/unspecified.
 logfilepath=""
 
 help_menu(){
     verbose_message "Displaying help menu"
+
     echo "Usage:"
     echo "./analyze.sh <logfile> [additional options]"
     echo
@@ -24,12 +28,14 @@ help_menu(){
 }
 
 verbose_message(){
+    #Verbose method, from what I understand, is essentially similar to walking through the debugging process with proper messages on each stage.
     if [ "$verbose" -eq 1 ]; then
         echo "[VERBOSE] $1"
     fi
 }
 
 additional_arguments(){
+    #This entire function was very easy to write since its very similar to normal programming while functions and argument parsing.
     while [ $# -gt 0 ]; do
 
         if [ "$1" = "--format" ]; then
@@ -66,7 +72,7 @@ additional_arguments(){
             help=1
             shift 1
         else
-            if [ -z "$logfilepath" ]; then
+            if [ -z "$logfilepath" ]; then #In the initial versions this was inside file validation however when writing help and verbose it had to be shifted for easier implementation.
                 logfilepath=$1
             else
                 echo "Unknown argument: $1"
@@ -88,7 +94,7 @@ file_validation(){
         exit 1
     fi
 
-    if [ ! -r "$logfilepath" ]; then
+    if [ ! -r "$logfilepath" ]; then #Was quite confused initially on how to check readability then I discovered -r.
         echo "File does not exist or isn't readable"
         exit 1
     fi
@@ -100,15 +106,16 @@ log_analysis(){
     verbose_message "Counting PASS/FAIL/SKIP tests"
     PASS=$(grep -c 'TEST PASS:' "$logfilepath" || true)
     FAIL=$(grep -c 'TEST FAIL:' "$logfilepath" || true)
-    SKIP=$(grep -c 'TEST SKIP:' "$logfilepath" || true)
+    SKIP=$(grep -c 'TEST SKIP:' "$logfilepath" || true) #Added OR true because -e would cause a script failure if grep found no match for PASS, FAIL or SKIP.
 
     verbose_message "Calculating Total tests"
     TOTAL=$((PASS + FAIL + SKIP))
+    #Arithmetic operations took me quite a long time, it was hard to understand their similarity in programming languages versus how theyre different.
 }
 
 statistics(){
     verbose_message "Calculating percentages of passed, failed and skipped tests"
-    if [ "$TOTAL" -eq 0 ]; then
+    if [ "$TOTAL" -eq 0 ]; then #Originally was only doing all this when it was gt 0 but realized this is much more efficient.
         PASS_RATE=0
         FAIL_RATE=0
         SKIP_RATE=0
@@ -119,32 +126,32 @@ statistics(){
         return
     fi
 
-    PASS_RATE=$(awk "BEGIN {printf \"%.2f\", ($PASS/$TOTAL)*100}")
-    FAIL_RATE=$(awk "BEGIN {printf \"%.2f\", ($FAIL/$TOTAL)*100}")
-    SKIP_RATE=$(awk "BEGIN {printf \"%.2f\", ($SKIP/$TOTAL)*100}")
+    PASS_RATE=$(awk "BEGIN {printf \"%.2f\", ($PASS/$TOTAL)*100}") #printf is added to format the result to exactly 2 decimal places.
+    FAIL_RATE=$(awk "BEGIN {printf \"%.2f\", ($FAIL/$TOTAL)*100}") #BEGIN blocks execute immediately.
+    SKIP_RATE=$(awk "BEGIN {printf \"%.2f\", ($SKIP/$TOTAL)*100}") #The manual specified only calculating pass rate however the example output shows all 3.
 
     verbose_message "Generating list of all failed tests"
     FAIL_LIST=$(grep 'TEST FAIL:' "$logfilepath" | awk '{print $5}')
 
     EXEC_TIME=0
-    MIN_TIME=100
+    MIN_TIME=100 #I know that a better way would be to put min and max time as the first execution time however this is an approach we used a lot even though it is hardcoded so for my own ease used this.
     MAX_TIME=0
     AVG_TIME=0
 
     verbose_message "Calculating timing statistics"
-    while IFS= read -r line; do 
+    while IFS= read -r line; do #This reads line by line, without trimming whitespaces and backslash escaping.
         if grep -q "TEST PASS:" <<< "$line"; then
             EXEC_TIME=$(echo "$line" | awk '{print $6}')
         elif grep -q "TEST FAIL:" <<< "$line"; then
             EXEC_TIME=$(echo "$line" | awk '{print $6}')
         else
-            continue
+            continue #This helps skip iterating over lines that are errors summaries warnings or skipped tests.
         fi
 
         EXEC_TIME=$(echo "$EXEC_TIME" | tr -d '()' | tr -d 's')
-        
+        #This cleans the execution time string so that they can be used for arithmetic operations below.
 
-        if [ "$(echo "$EXEC_TIME < $MIN_TIME" | bc -l)" -eq 1 ]; then
+        if [ "$(echo "$EXEC_TIME < $MIN_TIME" | bc -l)" -eq 1 ]; then #bc -l returns a 1 if the evaluation is true and 0 if false
             MIN_TIME=$EXEC_TIME
         fi
         
@@ -152,14 +159,14 @@ statistics(){
             MAX_TIME=$EXEC_TIME
         fi
 
-        AVG_TIME=$(echo "$AVG_TIME + $EXEC_TIME" | bc -l)
+        AVG_TIME=$(echo "$AVG_TIME + $EXEC_TIME" | bc -l) #All places where floating point is involved bc -l is used.
     done < "$logfilepath"
 
-    SUM=$((PASS + FAIL))
-    if [ "$SUM" -gt 0 ]; then
-        AVG_TIME=$(echo "scale=2; $AVG_TIME / $SUM" | bc -l)
+    SUM=$((PASS + FAIL)) #Skipped tests excluded from average timing calculations.
+    if [ "$SUM" -gt 0 ]; then #Avoids division by zero.
+        AVG_TIME=$(echo "scale=2; $AVG_TIME / $SUM" | bc -l) #scale 2 keeps 2 decimal places of average time.
     else
-        AVG_TIME=0
+        AVG_TIME=0 #If no tests were executed, average time is set to its default value.
     fi
 }
 
@@ -214,9 +221,9 @@ exit_code(){
     fi
 }
 
-additional_arguments "$@"
+additional_arguments "$@" #Learned that in shell script arguments are passed without any parenthesis.
 file_validation "$@"
 log_analysis "$@"
 statistics "$@"
 report "$@"
-exit_code "$@"
+exit_code "$@" 
