@@ -175,19 +175,20 @@ statistics(){
 report(){
     verbose_message "Generating report"
 
-    REPORT_TEXT="""=== RISC-V Simulation Log Analysis ===
+    REPORT_TEXT=""" === RISC-V Simulation Log Analysis ===
     Log file: $logfilepath
     Analysis date: $(date)
     
-    --- Results Summary ---
+     --- Results Summary ---
     Total tests: $TOTAL
     Passed:       $PASS ($PASS_RATE%)
     Failed:       $FAIL ($FAIL_RATE%)
     Skipped:      $SKIP ($SKIP_RATE%)
     
-    --- Failed Tests ---
+     --- Failed Tests ---
     $FAIL_LIST
-    --- Timing Statistics ---
+
+     --- Timing Statistics ---
     Min time:     ${MIN_TIME}s
     Max time:     ${MAX_TIME}s
     Avg time:     ${AVG_TIME}s"""
