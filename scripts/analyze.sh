@@ -15,9 +15,9 @@ help=0
 compare=0 #In all three of these 0 is considered as undefined/unspecified.
 logfilepath=""
 compare_file=""
-RED="\033[31m"
-GREEN="\033[32m" #ANSI Escape codes for pass and fail outputs.
-RESET="\033[0m" #Always appended to stop colouring.
+RED=$'\033[31m'
+GREEN=$'\033[32m' #ANSI Escape codes for pass and fail outputs.
+RESET=$'\033[0m' #Always appended to stop colouring.
 
 help_menu(){
     verbose_message "Displaying help menu"
@@ -220,7 +220,7 @@ report(){
     Avg time:     ${AVG_TIME}s"
 
     REPORT_CSV="Log file,Analysis date,Total tests,Passed,Failed,Skipped,List of failed tests,Min time,Max time,Avg time
-    $logfilepath,$(date),$TOTAL,$PASS ($PASS_RATE),$FAIL ($FAIL_RATE),$SKIP ($SKIP_RATE),$FAIL_LIST,$MIN_TIME,$MAX_TIME,$AVG_TIME"
+    $logfilepath,$(date),$TOTAL,$PASS ($PASS_RATE),$FAIL ($FAIL_RATE),$SKIP ($SKIP_RATE),$FAIL_LIST,$MIN_TIME $MIN_TEST_NAME,$MAX_TIME $MAX_TEST_NAME,$AVG_TIME"
     
     if [ "$format" = "text" ]; then
         REPORT=$REPORT_TEXT

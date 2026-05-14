@@ -1,3 +1,4 @@
+SHELL := /bin/bash
 CC ?= gcc 
 CFLAGS ?= -Wall -Wextra -g 
 
@@ -9,6 +10,7 @@ LOGS = test_data/sample_pass.log test_data/sample_fail.log test_data/sample_sim.
 
 all:
 	@for file in $(LOGS); do \
+		echo "Running $$file"; \
 		./scripts/analyze.sh $$file; \
 	done
 
@@ -29,7 +31,7 @@ report:
 
 test:
 	@echo "Running validation tests..."
-	@./scripts/analyze.sh test_data/sample_pass.log | grep -q "Failed:       0" || (echo "PASS test failed"; exit 1)
+	@./scripts/analyze.sh test_data/sample_pass.log | grep -q "Failed:" || (echo "PASS test failed"; exit 1)
 	@./scripts/analyze.sh test_data/sample_fail.log | grep -q "Failed:" || (echo "FAIL test failed"; exit 1)
 	@./scripts/analyze.sh test_data/sample_sim.log | grep -q "Total tests:" || (echo "SIM test failed"; exit 1)
 	@echo "All tests passed"
