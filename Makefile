@@ -3,12 +3,12 @@ CFLAGS ?= -Wall -Wextra -g
 
 TARGET = riscv-log-analyzer
 
-.PHONY: all clean setup test help
+.PHONY: all setup clean report test help
 
 all:
 	./scripts/analyze.sh test_data/sample_pass.log
 	./scripts/analyze.sh test_data/sample_fail.log
-	./scripts/analyze.sh test_data/sample_skip.log
+	./scripts/analyze.sh test_data/sample_sim.log
 
 setup:
 	@echo "Checking required tools:"
@@ -19,6 +19,18 @@ setup:
 
 clean:
 	rm -f output/*
+
+report:
+	./scripts/analyze.sh test_data/sample_pass.log --output output/report_pass.txt
+	./scripts/analyze.sh test_data/sample_fail.log --output output/report_fail.txt
+	./scripts/analyze.sh test_data/sample_sim.log --output output/report_sim.txt
+	@echo "Summary report for all logs generated in output/"
+
+test:
+	./scripts/analyze.sh test_data/sample_pass.log
+	./scripts/analyze.sh test_data/sample_fail.log
+	./scripts/analyze.sh test_data/sample_sim.log
+	@echo "Tests completed"
 
 help:
 	@echo "Available Targets:"
