@@ -187,7 +187,6 @@ report(){
     
      --- Failed Tests ---
     $FAIL_LIST
-
      --- Timing Statistics ---
     Min time:     ${MIN_TIME}s
     Max time:     ${MAX_TIME}s
