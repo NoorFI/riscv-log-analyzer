@@ -5,6 +5,9 @@ TARGET = riscv-log-analyzer
 
 .PHONY: all clean test help
 
+clean:
+	rm -f output/*
+
 help:
 	@echo "Available Targets:"
 	@echo "all   	Run the analyzer on all test log files"
