@@ -3,7 +3,40 @@ CFLAGS ?= -Wall -Wextra -g
 
 TARGET = riscv-log-analyzer
 
-.PHONY: all clean test help
+LOGS = test_data/sample_pass.log test_data/sample_fail.log test_data/sample_sim.log
+
+.PHONY: all setup clean report test help
+
+all:
+	@for file in $(LOGS); do \
+		./scripts/analyze.sh $$file; \
+	done
+
+setup:
+	@echo "Checking required tools:"
+	@bash --version
+	@grep --version
+	@awk --version
+	@bc --version
+
+clean:
+	rm -f output/*
+
+report:
+	@mkdir -p output
+	@echo "=== Combined Report ===" > output/report.txt
+	@for file in $(LOGS); do \
+		echo "Processing $$file" >> output/report.txt; \
+		./scripts/analyze.sh $$file >> output/report.txt; \
+		echo "" >> output/report.txt; \
+	done
+
+test:
+	@echo "Running validation tests..."
+	@./scripts/analyze.sh test_data/sample_pass.log | grep -q "Failed:       0" || (echo "PASS test failed"; exit 1)
+	@./scripts/analyze.sh test_data/sample_fail.log | grep -q "Failed:" || (echo "FAIL test failed"; exit 1)
+	@./scripts/analyze.sh test_data/sample_sim.log | grep -q "Total tests:" || (echo "SIM test failed"; exit 1)
+	@echo "All tests passed"
 
 help:
 	@echo "Available Targets:"
