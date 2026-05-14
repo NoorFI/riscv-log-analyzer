@@ -27,7 +27,7 @@ You will see commands like format, output, verbose and help.
 
 1. Format:</br>
     This decides how your output would look like.
-    csv = comma seperated values designed to store tabular data.
+    csv = comma separated values designed to store tabular data.
    
     ~~~
     --format text
