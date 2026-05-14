@@ -13,11 +13,10 @@ file_validation(){
 
     logfilepath=$1
 
-    if [ ! -f "$logfilepath" ]; then
-        echo "File does not exist"
+    if [ ! -r "$logfilepath" ]; then
+        echo "File does not exist or isn't readable"
         exit 1
     fi
-    # If file is unreadable but dont know how to check that yet.
 }
 
 additional_arguments(){
@@ -55,43 +54,49 @@ additional_arguments(){
 }
 
 log_analysis(){
-    PASS=$(grep -c 'PASS' "$logfilepath")
-    FAIL=$(grep -c 'FAIL' "$logfilepath")
-    SKIP=$(grep -c 'SKIP' "$logfilepath")
+    PASS=$(grep -c 'TEST PASS:' "$logfilepath")
+    FAIL=$(grep -c 'TEST FAIL:' "$logfilepath")
+    SKIP=$(grep -c 'TEST SKIP:' "$logfilepath")
 
     TOTAL=$((PASS + FAIL + SKIP))
 }
 
 statistics(){
     if [ "$TOTAL" -gt 0 ]; then
-        PASS_RATE=$((PASS / TOTAL))
-        PASS_RATE=$((PASS_RATE * 100))
-        FAIL_RATE=$((FAIL / TOTAL))
-        FAIL_RATE=$((FAIL_RATE * 100))
-        SKIP_RATE=$((SKIP / TOTAL))
-        SKIP_RATE=$((SKIP_RATE * 100))
+        PASS_RATE=$(awk "BEGIN {print ($PASS/$TOTAL)*100}")
+        FAIL_RATE=$(awk "BEGIN {print ($FAIL/$TOTAL)*100}")
+        SKIP_RATE=$(awk "BEGIN {print ($SKIP/$TOTAL)*100}")
     fi
 
-    FAIL_LIST=$(grep 'FAIL' "$logfilepath" | awk '{print $5}')
+    FAIL_LIST=$(grep 'TEST FAIL:' "$logfilepath" | awk '{print $5}')
     EXEC_TIME=0
-    MIN_TIME=0
+    MIN_TIME=100
     MAX_TIME=0
     AVG_TIME=0
-    while IFS= read -r line "$logfilepath"; do 
-        if [ (grep 'PASS' "$line") = 1 ]; then
-                EXEC_TIME=$(awk '{print $6}')
-        elif [ (grep 'FAIL' "$line") = 1 ]; then
-            EXEC_TIME=$(awk '{print $6}')
+
+    while IFS= read -r line; do 
+        if grep -q "TEST PASS:" <<< "$line"; then
+            EXEC_TIME=$(echo "$line" | awk '{print $6}')
+        elif grep -q "TEST FAIL:" <<< "$line"; then
+            EXEC_TIME=$(echo "$line" | awk '{print $6}')
+        else
+            exit 1
         fi
 
-        if [ "$EXEC_TIME" -lt "$MIN_TIME" ]; then
+        EXEC_TIME=$(echo "$EXEC_TIME" | tr -d '()' | tr -d 's')
+        
+
+        if [ "$(echo "$EXEC_TIME < $MIN_TIME" | bc -l)" -eq 1 ]; then
             MIN_TIME=$EXEC_TIME
-        elif [ "$EXEC_TIME" -gt "$MAX_TIME" ]; then
+        fi
+        
+        if [ "$(echo "$EXEC_TIME > $MAX_TIME" | bc -l)" -eq 1 ]; then
             MAX_TIME=$EXEC_TIME
         fi
 
-        AVG_TIME+=$EXEC_TIME
-    done
+        AVG_TIME=$(echo "$AVG_TIME / $SUM" | bc -l)
+    done < "$logfilepath"
+
     SUM=$((PASS + FAIL))
     AVG_TIME=$((AVG_TIME / SUM))
 }
