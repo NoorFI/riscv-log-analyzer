@@ -5,13 +5,88 @@
 
 set -euo pipefail
 
+format=text
+output=stdout
+verbose=0
+help=0
+logfilepath=""
+
+help_menu(){
+    verbose_message "Displaying help menu"
+    echo "Usage:"
+    echo "./analyze.sh <logfile> [additional options]"
+    echo
+    echo "Additional Options:"
+    echo "--format [text|csv]    Output format"
+    echo "--output <path>        Write output to file"
+    echo "--verbose              Enable verbose mode"
+    echo "--help                 Show help menu"
+}
+
+verbose_message(){
+    if [ "$verbose" -eq 1 ]; then
+        echo "[VERBOSE] $1"
+    fi
+}
+
+additional_arguments(){
+    while [ $# -gt 0 ]; do
+
+        if [ "$1" = "--format" ]; then
+            
+            if [ $# -lt 2 ]; then
+                echo "No format provided"
+                exit 1
+            fi
+
+            format=$2
+
+            if [ "$format" != "text" ] && [ "$format" != "csv" ]; then
+                echo "Invalid format"
+                exit 1
+            fi
+
+            shift 2
+
+        elif [ "$1" = "--output" ]; then
+            
+            if [ $# -lt 2 ]; then
+                echo "No output provided"
+                exit 1
+            fi
+
+            output=$2
+            shift 2
+
+        elif [ "$1" = "--verbose" ]; then
+            verbose=1
+            shift 1
+
+        elif [ "$1" = "--help" ]; then
+            help=1
+            shift 1
+        else
+            if [ -z "$logfilepath" ]; then
+                logfilepath=$1
+            else
+                echo "Unknown argument: $1"
+                exit 1
+            fi
+            shift 1
+        fi
+    done
+
+    if [ "$help" -eq 1 ]; then
+        help_menu
+        exit 0
+    fi
+}
+
 file_validation(){
-    if [ "$#" -lt 1 ]; then
-        echo "No argument provided"
+    if [ -z "$logfilepath" ]; then
+        echo "No log file provided"
         exit 1
     fi
-
-    logfilepath=$1
 
     if [ ! -r "$logfilepath" ]; then
         echo "File does not exist or isn't readable"
@@ -19,68 +94,51 @@ file_validation(){
     fi
 }
 
-additional_arguments(){
-    format=text
-    output=stdout
-    verbose=0
-    help=0
-    shift 1
-
-    while [ $# -gt 0 ]; do
-        if [ "$1" = "--format" ]; then
-            if [ -z "$2" ]; then
-                echo "No format provided"
-                exit 1
-            fi
-            format=$2
-            shift 2
-        elif [ "$1" = "--output" ]; then
-            if [ -z "$2" ]; then
-                echo "No output provided"
-                exit 1
-            fi
-            output=$2
-            shift 2
-        elif [ "$1" = "--verbose" ]; then
-            verbose=1
-            shift 1
-        elif [ "$1" = "--help" ]; then
-            help=1
-            shift 1
-        else
-            exit 1
-        fi
-    done
-}
-
 log_analysis(){
-    PASS=$(grep -c 'TEST PASS:' "$logfilepath")
-    FAIL=$(grep -c 'TEST FAIL:' "$logfilepath")
-    SKIP=$(grep -c 'TEST SKIP:' "$logfilepath")
+    verbose_message "Starting log analysis"
+    
+    verbose_message "Counting PASS/FAIL/SKIP tests"
+    PASS=$(grep -c 'TEST PASS:' "$logfilepath" || true)
+    FAIL=$(grep -c 'TEST FAIL:' "$logfilepath" || true)
+    SKIP=$(grep -c 'TEST SKIP:' "$logfilepath" || true)
 
+    verbose_message "Calculating Total tests"
     TOTAL=$((PASS + FAIL + SKIP))
 }
 
 statistics(){
-    if [ "$TOTAL" -gt 0 ]; then
-        PASS_RATE=$(awk "BEGIN {print ($PASS/$TOTAL)*100}")
-        FAIL_RATE=$(awk "BEGIN {print ($FAIL/$TOTAL)*100}")
-        SKIP_RATE=$(awk "BEGIN {print ($SKIP/$TOTAL)*100}")
+    verbose_message "Calculating percentages of passed, failed and skipped tests"
+    if [ "$TOTAL" -eq 0 ]; then
+        PASS_RATE=0
+        FAIL_RATE=0
+        SKIP_RATE=0
+        MIN_TIME=0
+        MAX_TIME=0
+        AVG_TIME=0
+        FAIL_LIST=""
+        return
     fi
 
+    PASS_RATE=$(awk "BEGIN {printf \"%.2f\", ($PASS/$TOTAL)*100}")
+    FAIL_RATE=$(awk "BEGIN {printf \"%.2f\", ($FAIL/$TOTAL)*100}")
+    SKIP_RATE=$(awk "BEGIN {printf \"%.2f\", ($SKIP/$TOTAL)*100}")
+
+    verbose_message "Generating list of all failed tests"
     FAIL_LIST=$(grep 'TEST FAIL:' "$logfilepath" | awk '{print $5}')
+
     EXEC_TIME=0
     MIN_TIME=100
     MAX_TIME=0
     AVG_TIME=0
 
+    verbose_message "Calculating timing statistics"
     while IFS= read -r line; do 
         if grep -q "TEST PASS:" <<< "$line"; then
             EXEC_TIME=$(echo "$line" | awk '{print $6}')
         elif grep -q "TEST FAIL:" <<< "$line"; then
             EXEC_TIME=$(echo "$line" | awk '{print $6}')
         else
-            exit 1
+            continue
         fi
 
         EXEC_TIME=$(echo "$EXEC_TIME" | tr -d '()' | tr -d 's')
@@ -94,39 +152,57 @@ statistics(){
             MAX_TIME=$EXEC_TIME
         fi
 
-        AVG_TIME=$(echo "$AVG_TIME / $SUM" | bc -l)
+        AVG_TIME=$(echo "$AVG_TIME + $EXEC_TIME" | bc -l)
     done < "$logfilepath"
 
     SUM=$((PASS + FAIL))
-    AVG_TIME=$((AVG_TIME / SUM))
+    if [ "$SUM" -gt 0 ]; then
+        AVG_TIME=$(echo "scale=2; $AVG_TIME / $SUM" | bc -l)
+    else
+        AVG_TIME=0
+    fi
 }
 
 report(){
+    verbose_message "Generating report"
+
+    REPORT_TEXT="""=== RISC-V Simulation Log Analysis ===
+    Log file: $logfilepath
+    Analysis date: $(date)
+    
+    --- Results Summary ---
+    Total tests: $TOTAL
+    Passed:       $PASS ($PASS_RATE%)
+    Failed:       $FAIL ($FAIL_RATE%)
+    Skipped:      $SKIP ($SKIP_RATE%)
+    
+    --- Failed Tests ---
+    $FAIL_LIST
+    --- Timing Statistics ---
+    Min time:     ${MIN_TIME}s
+    Max time:     ${MAX_TIME}s
+    Avg time:     ${AVG_TIME}s"""
+
+    REPORT_CSV="Log file,Analysis date,Total tests,Passed,Failed,Skipped,List of failed tests,Min time,Max time,Avg time
+    $logfilepath,$(date),$TOTAL,$PASS ($PASS_RATE),$FAIL ($FAIL_RATE),$SKIP ($SKIP_RATE),$FAIL_LIST,$MIN_TIME,$MAX_TIME,$AVG_TIME"
+    
     if [ "$format" = "text" ]; then
-        echo "=== RISC-V Simulation Log Analysis ==="
-        echo "Log file: $logfilepath"
-        echo "Analysis date: $(date)"
-
-        echo "--- Results Summary ---"
-        echo "Total tests: $TOTAL"
-        echo "Passed:       $PASS ($PASS_RATE)"
-        echo "Failed:       $FAIL ($FAIL_RATE)"
-        echo "Skipped:      $SKIP ($SKIP_RATE)"
-
-        echo "--- Failed Tests ---"
-        echo "$FAIL_LIST"
-
-        echo "--- Timing Statistics ---"
-        echo "Min time:     $MIN_TIME"
-        echo "Max time:     $MAX_TIME"
-        echo "Avg time:     $AVG_TIME"
+        REPORT=$REPORT_TEXT
     elif [ "$format" = "csv" ]; then
-        echo "Log file, Analysis date, Total tests, Passed, Failed, Skipped, List of failed tests, Min time, Max time, Avg time"
-        echo "$logfilepath, $(date), $TOTAL, $PASS ($PASS_RATE), $FAIL ($FAIL_RATE), $SKIP ($SKIP_RATE), $FAIL_LIST, $MIN_TIME, $MAX_TIME, $AVG_TIME"
+        REPORT=$REPORT_CSV
+    fi
+
+    if [ "$output" = "stdout" ]; then
+        echo "$REPORT"
+    else
+        echo "$REPORT" > "$output"
+        echo "Report written to $output"
     fi
 }
 
 exit_code(){
+    verbose_message "Exiting"
+
     if [ "$FAIL" -gt 0 ]; then
         echo "--- Verdict: FAIL ---"
         echo "Exit code: 1"
@@ -138,9 +214,9 @@ exit_code(){
     fi
 }
 
-file_validation("$@")
-additional_arguments("$@")
-log_analysis("$@")
-statistics("$@")
-report("$@")
-exit_code("$@")
+additional_arguments "$@"
+file_validation "$@"
+log_analysis "$@"
+statistics "$@"
+report "$@"
+exit_code "$@"
