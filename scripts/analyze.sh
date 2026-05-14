@@ -11,8 +11,10 @@ set -euo pipefail
 format=text
 output=stdout
 verbose=0
-help=0 #In both of these 0 is considered as undefined/unspecified.
+help=0
+compare=0 #In all three of these 0 is considered as undefined/unspecified.
 logfilepath=""
+compare_file=""
 
 help_menu(){
     verbose_message "Displaying help menu"
@@ -62,6 +64,11 @@ additional_arguments(){
             fi
 
             output=$2
+            shift 2
+        
+        elif [ "$1" = "--compare" ]; then
+            compare=1
+            compare_file="$2"
             shift 2
 
         elif [ "$1" = "--verbose" ]; then
@@ -187,6 +194,7 @@ report(){
     
      --- Failed Tests ---
     $FAIL_LIST
+
      --- Timing Statistics ---
     Min time:     ${MIN_TIME}s
     Max time:     ${MAX_TIME}s
@@ -209,6 +217,21 @@ report(){
     fi
 }
 
+compare_logs(){
+    verbose_message "Comparing logs for regressions"
+
+    OLD_PASSED_TESTS=$(grep "TEST PASS:" "$compare_file" | awk '{print $5}')
+    NEW_FAILED_TESTS=$(grep "TEST FAIL:" "$logfilepath" | awk '{print $5}')
+
+    echo "=== REGRESSIONS (Previously PASS --> Now FAIL) ==="
+
+    for test in $NEW_FAILED_TESTS; do
+        if echo "$OLD_PASSED_TESTS" | grep -q "$test"; then
+            echo "REGRESSION: $test"
+        fi
+    done
+}
+
 exit_code(){
     verbose_message "Exiting"
 
@@ -227,5 +250,10 @@ additional_arguments "$@" #Learned that in shell script arguments are passed wit
 file_validation "$@"
 log_analysis "$@"
 statistics "$@"
+
+if [ "$compare" -eq 1 ]; then
+    compare_logs "$@"
+fi
+
 report "$@"
 exit_code "$@" 
