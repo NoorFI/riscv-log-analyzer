@@ -5,6 +5,11 @@ TARGET = riscv-log-analyzer
 
 .PHONY: all clean setup test help
 
+all:
+	./scripts/analyze.sh test_data/sample_pass.log
+	./scripts/analyze.sh test_data/sample_fail.log
+	./scripts/analyze.sh test_data/sample_skip.log
+
 setup:
 	@echo "Checking required tools:"
 	@bash --version
