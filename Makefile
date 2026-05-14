@@ -3,12 +3,14 @@ CFLAGS ?= -Wall -Wextra -g
 
 TARGET = riscv-log-analyzer
 
+LOGS = test_data/sample_pass.log test_data/sample_fail.log test_data/sample_sim.log
+
 .PHONY: all setup clean report test help
 
 all:
-	./scripts/analyze.sh test_data/sample_pass.log
-	./scripts/analyze.sh test_data/sample_fail.log
-	./scripts/analyze.sh test_data/sample_sim.log
+	@for file in $(LOGS); do \
+		./scripts/analyze.sh $$file; \
+	done
 
 setup:
 	@echo "Checking required tools:"
@@ -21,16 +23,20 @@ clean:
 	rm -f output/*
 
 report:
-	./scripts/analyze.sh test_data/sample_pass.log --output output/report_pass.txt
-	./scripts/analyze.sh test_data/sample_fail.log --output output/report_fail.txt
-	./scripts/analyze.sh test_data/sample_sim.log --output output/report_sim.txt
-	@echo "Summary report for all logs generated in output/"
+	@mkdir -p output
+	@echo "=== Combined Report ===" > output/report.txt
+	@for file in $(LOGS); do \
+		echo "Processing $$file" >> output/report.txt; \
+		./scripts/analyze.sh $$file >> output/report.txt; \
+		echo "" >> output/report.txt; \
+	done
 
 test:
-	./scripts/analyze.sh test_data/sample_pass.log
-	./scripts/analyze.sh test_data/sample_fail.log
-	./scripts/analyze.sh test_data/sample_sim.log
-	@echo "Tests completed"
+	@echo "Running validation tests..."
+	@./scripts/analyze.sh test_data/sample_pass.log | grep -q "Failed:       0" || (echo "PASS test failed"; exit 1)
+	@./scripts/analyze.sh test_data/sample_fail.log | grep -q "Failed:" || (echo "FAIL test failed"; exit 1)
+	@./scripts/analyze.sh test_data/sample_sim.log | grep -q "Total tests:" || (echo "SIM test failed"; exit 1)
+	@echo "All tests passed"
 
 help:
 	@echo "Available Targets:"
