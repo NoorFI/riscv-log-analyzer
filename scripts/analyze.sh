@@ -34,14 +34,14 @@ help_menu(){
 }
 
 verbose_message(){
-    #Verbose method, from what I understand, is essentially similar to walking through the debugging process with proper messages on each stage.
+    #Verbose method is essentially similar to walking through the debugging process with proper messages on each stage.
     if [ "$verbose" -eq 1 ]; then
         echo "[VERBOSE] $1"
     fi
 }
 
 additional_arguments(){
-    #This entire function was very easy to write since its very similar to normal programming while functions and argument parsing.
+    #This entire function is very similar to normal programming while functions and argument parsing.
     while [ $# -gt 0 ]; do
 
         if [ "$1" = "--format" ]; then
@@ -71,6 +71,12 @@ additional_arguments(){
             shift 2
         
         elif [ "$1" = "--compare" ]; then
+            
+            if [ $# -lt 2 ]; then
+                echo "No compare file provided"
+                exit 1
+            fi
+            
             compare=1
             compare_file="$2"
             shift 2
@@ -107,7 +113,7 @@ file_validation(){
 
     logfilepath="$(realpath "$logfilepath")" #Ensures absolute path, since we're working from root directory and file is inside another directory.
 
-    if [ ! -r "$logfilepath" ]; then #Was quite confused initially on how to check readability then I discovered -r.
+    if [ ! -r "$logfilepath" ]; then #-r checks for readability and availability of file.
         echo "File does not exist or isn't readable"
         exit 1
     fi
@@ -128,12 +134,11 @@ log_analysis(){
 
     verbose_message "Calculating Total tests"
     TOTAL=$((PASS + FAIL + SKIP))
-    #Arithmetic operations took me quite a long time, it was hard to understand their similarity in programming languages versus how theyre different.
 }
 
 statistics(){
     verbose_message "Calculating percentages of passed, failed and skipped tests"
-    if [ "$TOTAL" -eq 0 ]; then #Originally was only doing all this when it was gt 0 but realized this is much more efficient.
+    if [ "$TOTAL" -eq 0 ]; then #Originally was checking for when it was gt 0 but this is much more efficient.
         PASS_RATE=0
         FAIL_RATE=0
         SKIP_RATE=0
@@ -152,9 +157,11 @@ statistics(){
     FAIL_LIST=$(grep 'TEST FAIL:' "$logfilepath" | awk '{print $5}')
 
     EXEC_TIME=0
-    MIN_TIME=100 #I know that a better way would be to put min and max time as the first execution time however this is an approach we used a lot even though it is hardcoded so for my own ease used this.
+    MIN_TIME=100 #A better way would be to put min and max time as the first execution time however this is an approach we used a lot even though it is hardcoded so for my own ease used this.
     MAX_TIME=0
     AVG_TIME=0
+    MIN_TEST_NAME=""
+    MAX_TEST_NAME="" #The manual has proper names of tests that have max and min time.
 
     verbose_message "Calculating timing statistics"
     while IFS= read -r line; do #This reads line by line, without trimming whitespaces and backslash escaping.
@@ -166,15 +173,18 @@ statistics(){
             continue #This helps skip iterating over lines that are errors summaries warnings or skipped tests.
         fi
 
+        TEST_NAME=$(echo "$line" | awk '{print $5}') #Extracting test names for min and max.
         EXEC_TIME=$(echo "$EXEC_TIME" | tr -d '()' | tr -d 's')
         #This cleans the execution time string so that they can be used for arithmetic operations below.
 
         if [ "$(echo "$EXEC_TIME < $MIN_TIME" | bc -l)" -eq 1 ]; then #bc -l returns a 1 if the evaluation is true and 0 if false
             MIN_TIME=$EXEC_TIME
+            MIN_TEST_NAME=$TEST_NAME
         fi
         
         if [ "$(echo "$EXEC_TIME > $MAX_TIME" | bc -l)" -eq 1 ]; then
             MAX_TIME=$EXEC_TIME
+            MAX_TEST_NAME=$TEST_NAME
         fi
 
         AVG_TIME=$(echo "$AVG_TIME + $EXEC_TIME" | bc -l) #All places where floating point is involved bc -l is used.
@@ -191,7 +201,7 @@ statistics(){
 report(){
     verbose_message "Generating report"
 
-    REPORT_TEXT=""=== RISC-V Simulation Log Analysis ===
+    REPORT_TEXT="=== RISC-V Simulation Log Analysis ===
     Log file: $logfilepath
     Analysis date: $(date)
     
@@ -205,9 +215,9 @@ report(){
     ${RED}$FAIL_LIST${RESET}
 
     --- Timing Statistics ---
-    Min time:     ${MIN_TIME}s
-    Max time:     ${MAX_TIME}s
-    Avg time:     ${AVG_TIME}s""
+    Min time:     ${MIN_TIME}s ($MIN_TEST_NAME)
+    Max time:     ${MAX_TIME}s ($MAX_TEST_NAME)
+    Avg time:     ${AVG_TIME}s"
 
     REPORT_CSV="Log file,Analysis date,Total tests,Passed,Failed,Skipped,List of failed tests,Min time,Max time,Avg time
     $logfilepath,$(date),$TOTAL,$PASS ($PASS_RATE),$FAIL ($FAIL_RATE),$SKIP ($SKIP_RATE),$FAIL_LIST,$MIN_TIME,$MAX_TIME,$AVG_TIME"
@@ -255,7 +265,7 @@ exit_code(){
     fi
 }
 
-additional_arguments "$@" #Learned that in shell script arguments are passed without any parenthesis.
+additional_arguments "$@" #In shell script arguments are passed without any parenthesis.
 file_validation "$@"
 log_analysis "$@"
 statistics "$@"
